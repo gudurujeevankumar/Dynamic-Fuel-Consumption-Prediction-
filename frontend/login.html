@@ -1,0 +1,213 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8"><meta name="viewport" content="width=device-width,initial-scale=1">
+<title>ECU Analytics — Login</title>
+<link href="https://fonts.googleapis.com/css2?family=Orbitron:wght@400;700;900&family=DM+Sans:wght@300;400;500;600;700&display=swap" rel="stylesheet">
+<style>
+*{margin:0;padding:0;box-sizing:border-box}
+body{min-height:100vh;display:flex;font-family:"DM Sans",sans-serif;background:#0d1b2e}
+
+/* ── Left panel ── */
+.left{flex:1;background:#0d1b2e;display:flex;flex-direction:column;justify-content:space-between;padding:48px 56px;position:relative;overflow:hidden}
+.left::before{content:"";position:absolute;inset:0;background:url("data:image/svg+xml,%3Csvg width='60' height='60' viewBox='0 0 60 60' xmlns='http://www.w3.org/2000/svg'%3E%3Cg fill='none' fill-rule='evenodd'%3E%3Cg fill='%2300d2aa' fill-opacity='0.04'%3E%3Cpath d='M36 34v-4h-2v4h-4v2h4v4h2v-4h4v-2h-4zm0-30V0h-2v4h-4v2h4v4h2V6h4V4h-4zM6 34v-4H4v4H0v2h4v4h2v-4h4v-2H6zM6 4V0H4v4H0v2h4v4h2V6h4V4H6z'/%3E%3C/g%3E%3C/g%3E%3C/svg%3E");pointer-events:none}
+.logo-wrap{display:flex;align-items:center;gap:14px}
+.logo-icon{width:48px;height:48px;background:linear-gradient(135deg,#00d2aa,#00a880);border-radius:12px;display:flex;align-items:center;justify-content:center;font-size:24px;flex-shrink:0;box-shadow:0 8px 24px rgba(0,210,170,0.3)}
+.logo-text{font-family:"Orbitron",monospace;font-size:18px;font-weight:700;color:#fff;letter-spacing:1px;line-height:1.1}
+.logo-sub{font-size:10px;color:#64748b;letter-spacing:2px;text-transform:uppercase;margin-top:2px}
+.left-badge{display:inline-block;font-size:10px;font-weight:600;letter-spacing:2px;text-transform:uppercase;color:#00d2aa;background:rgba(0,210,170,0.08);border:1px solid rgba(0,210,170,0.2);padding:6px 14px;border-radius:20px;margin-bottom:20px}
+.left-title{font-size:44px;font-weight:700;color:#fff;line-height:1.15;margin-bottom:20px}
+.left-title span{color:#00d2aa}
+.left-desc{font-size:15px;color:#8ba3c0;line-height:1.7;margin-bottom:40px;max-width:460px}
+.stats{display:flex;gap:0}
+.stat{padding:16px 24px;border-left:2px solid rgba(255,255,255,0.08)}
+.stat:first-child{padding-left:0;border-left:none}
+.stat-val{font-size:28px;font-weight:700;color:#fff;font-family:"Orbitron",monospace;letter-spacing:-1px}
+.stat-lbl{font-size:11px;color:#64748b;margin-top:3px;letter-spacing:.5px}
+.left-footer{font-size:12px;color:#334155}
+
+/* ── Right panel ── */
+.right{width:460px;background:#fff;display:flex;align-items:center;justify-content:center;padding:56px 48px;flex-shrink:0}
+.form-wrap{width:100%;max-width:360px}
+.form-title{font-size:28px;font-weight:700;color:#0f172a;margin-bottom:6px}
+.form-sub{font-size:14px;color:#64748b;margin-bottom:32px}
+
+/* Tabs */
+.tabs{display:flex;background:#f1f5f9;border-radius:10px;padding:4px;margin-bottom:28px;gap:4px}
+.tab{flex:1;padding:10px;text-align:center;border-radius:8px;cursor:pointer;font-size:13px;font-weight:600;color:#64748b;transition:all .2s}
+.tab.active{background:#00d2aa;color:#fff;box-shadow:0 2px 8px rgba(0,210,170,0.3)}
+.form-body{display:none}.form-body.active{display:block}
+
+/* Fields */
+.field{margin-bottom:18px}
+label{display:block;font-size:11px;font-weight:600;color:#94a3b8;letter-spacing:1.2px;text-transform:uppercase;margin-bottom:7px}
+input{width:100%;background:#f8fafc;border:1.5px solid #e2e8f0;border-radius:10px;padding:13px 16px;color:#0f172a;font-size:14px;outline:none;transition:all .2s;font-family:"DM Sans",sans-serif}
+input:focus{border-color:#00d2aa;background:#fff;box-shadow:0 0 0 4px rgba(0,210,170,0.08)}
+input::placeholder{color:#cbd5e1}
+
+/* Button */
+.btn{width:100%;padding:14px;background:linear-gradient(135deg,#00d2aa,#00a880);border:none;border-radius:10px;color:#fff;font-size:15px;font-weight:700;cursor:pointer;margin-top:4px;font-family:"DM Sans",sans-serif;transition:all .2s;letter-spacing:.3px;box-shadow:0 4px 16px rgba(0,210,170,0.3)}
+.btn:hover{transform:translateY(-1px);box-shadow:0 8px 24px rgba(0,210,170,0.4)}
+.btn:disabled{opacity:.6;cursor:not-allowed;transform:none;box-shadow:none}
+
+/* Messages */
+.err{background:#fef2f2;border:1px solid #fecaca;color:#dc2626;border-radius:8px;padding:11px 14px;font-size:13px;margin-bottom:14px;display:none}
+.ok{background:#f0fdf4;border:1px solid #bbf7d0;color:#16a34a;border-radius:8px;padding:11px 14px;font-size:13px;margin-bottom:14px;display:none}
+
+/* Admin link */
+.admin-link{text-align:center;margin-top:18px;font-size:13px;color:#94a3b8}
+.admin-link a{color:#00a880;font-weight:600;text-decoration:none}
+.admin-link a:hover{color:#00d2aa}
+
+.vkey-hint{font-size:11px;color:#94a3b8;margin-top:5px;line-height:1.5}
+
+/* Mobile */
+@media(max-width:800px){
+  body{flex-direction:column}
+  .left{padding:32px 28px;flex:none}
+  .left-title{font-size:28px}
+  .right{width:100%;padding:32px 24px}
+  .form-wrap{max-width:100%}
+}
+</style>
+</head>
+<body>
+
+<!-- LEFT: Info Panel -->
+<div class="left">
+  <div class="logo-wrap">
+    <div class="logo-icon">⚡</div>
+    <div>
+      <div class="logo-text">ECU ANALYTICS</div>
+      <div class="logo-sub">Real-Time Intelligence</div>
+    </div>
+  </div>
+
+  <div>
+    <div class="left-badge">B.Tech Final Year Project · CREC, Tirupati</div>
+    <h1 class="left-title">Machine Learning<br>for <span>Real-Time Fuel</span><br>Consumption Prediction</h1>
+    <p class="left-desc">Harness ECU data streams to predict fuel consumption and classify driving behavior in real-time using XGBoost, Ridge Regression, and SVR models.</p>
+    <div class="stats">
+      <div class="stat"><div class="stat-val">99%</div><div class="stat-lbl">XGBoost R²</div></div>
+      <div class="stat"><div class="stat-val">3</div><div class="stat-lbl">ML Models</div></div>
+      <div class="stat"><div class="stat-val">1.5s</div><div class="stat-lbl">Update Rate</div></div>
+      <div class="stat"><div class="stat-val">ECU</div><div class="stat-lbl">Data Source</div></div>
+    </div>
+  </div>
+
+  <div class="left-footer">Dept. of CSE · Academic Year 2025–26 · Course Code: 20CA02801</div>
+</div>
+
+<!-- RIGHT: Login Form -->
+<div class="right">
+  <div class="form-wrap">
+    <h2 class="form-title" id="form-heading">Welcome Back</h2>
+    <p class="form-sub" id="form-subhead">Sign in to your ECU Analytics account</p>
+
+    <div class="tabs">
+      <div class="tab active" onclick="showTab('login')">LOGIN</div>
+      <div class="tab" onclick="showTab('register')">REGISTER</div>
+    </div>
+
+    <!-- LOGIN -->
+    <div class="form-body active" id="form-login">
+      <div class="err" id="login-err"></div>
+      <div class="ok"  id="login-ok"></div>
+      <div class="field">
+        <label>Email Address</label>
+        <input type="email" id="l-email" placeholder="driver@email.com">
+      </div>
+      <div class="field">
+        <label>Password</label>
+        <input type="password" id="l-pass" placeholder="••••••••">
+      </div>
+      <button class="btn" id="l-btn" onclick="doLogin()">SIGN IN</button>
+      <div class="admin-link">Admin? <a href="admin_login.html">Admin Portal →</a></div>
+    </div>
+
+    <!-- REGISTER -->
+    <div class="form-body" id="form-register">
+      <div class="err" id="reg-err"></div>
+      <div class="ok"  id="reg-ok"></div>
+      <div class="field"><label>Full Name</label><input type="text" id="r-name" placeholder="G. Jeevan Kumar"></div>
+      <div class="field"><label>Email Address</label><input type="email" id="r-email" placeholder="your@email.com"></div>
+      <div class="field"><label>Password</label><input type="password" id="r-pass" placeholder="Min 6 characters"></div>
+      <div class="field">
+        <label>Vehicle API Key</label>
+        <input type="text" id="r-key" placeholder="TYT-2024-001">
+        <div class="vkey-hint">Prefix: TYT=Toyota · HON=Honda · MAR=Maruti · HYN=Hyundai · TAT=Tata</div>
+      </div>
+      <button class="btn" id="r-btn" onclick="doRegister()">CREATE ACCOUNT</button>
+    </div>
+  </div>
+</div>
+
+<script>
+const API = '/api';
+
+function showTab(t) {
+  const isLogin = t === 'login';
+  document.querySelectorAll('.tab').forEach((el,i) => el.classList.toggle('active',(i===0&&isLogin)||(i===1&&!isLogin)));
+  document.getElementById('form-login').classList.toggle('active', isLogin);
+  document.getElementById('form-register').classList.toggle('active', !isLogin);
+  document.getElementById('form-heading').textContent = isLogin ? 'Welcome Back' : 'Create Account';
+  document.getElementById('form-subhead').textContent = isLogin ? 'Sign in to your ECU Analytics account' : 'Register your vehicle and get started';
+}
+
+function showMsg(id, msg, isErr=true) {
+  const el = document.getElementById(id);
+  el.textContent = msg; el.style.display = 'block';
+}
+function hideAll(prefix) {
+  [prefix+'-err', prefix+'-ok'].forEach(id => { const e=document.getElementById(id); if(e)e.style.display='none'; });
+}
+
+async function doLogin() {
+  hideAll('login');
+  const email = document.getElementById('l-email').value.trim();
+  const pass  = document.getElementById('l-pass').value;
+  if (!email || !pass) return showMsg('login-err','Please fill all fields');
+  const btn = document.getElementById('l-btn');
+  btn.disabled=true; btn.textContent='Signing in...';
+  try {
+    const res  = await fetch(API+'/auth/login',{method:'POST',credentials:'include',headers:{'Content-Type':'application/json'},body:JSON.stringify({email,password:pass})});
+    const data = await res.json();
+    if (!res.ok) return showMsg('login-err', data.error||'Login failed');
+    localStorage.setItem('ecu_user', JSON.stringify(data.user));
+    showMsg('login-ok','Login successful! Redirecting...', false);
+    document.getElementById('login-ok').style.display='block';
+    setTimeout(()=>{ location.href = data.is_admin ? 'admin_dashboard.html' : 'user_dashboard.html'; }, 700);
+  } catch(e) { showMsg('login-err','Cannot connect to server. Is it running?'); }
+  finally { btn.disabled=false; btn.textContent='SIGN IN'; }
+}
+
+async function doRegister() {
+  hideAll('reg');
+  const name  = document.getElementById('r-name').value.trim();
+  const email = document.getElementById('r-email').value.trim();
+  const pass  = document.getElementById('r-pass').value;
+  const key   = document.getElementById('r-key').value.trim();
+  if (!name||!email||!pass||!key) return showMsg('reg-err','Please fill all fields');
+  if (pass.length < 6) return showMsg('reg-err','Password must be at least 6 characters');
+  const btn = document.getElementById('r-btn');
+  btn.disabled=true; btn.textContent='Creating account...';
+  try {
+    const res  = await fetch(API+'/auth/register',{method:'POST',credentials:'include',headers:{'Content-Type':'application/json'},body:JSON.stringify({name,email,password:pass,vehicle_api_key:key})});
+    const data = await res.json();
+    if (!res.ok) return showMsg('reg-err', data.error||'Registration failed');
+    showMsg('reg-ok','Account created! Please login.', false);
+    document.getElementById('reg-ok').style.display='block';
+    setTimeout(()=>showTab('login'),1500);
+  } catch(e) { showMsg('reg-err','Cannot connect to server. Is it running?'); }
+  finally { btn.disabled=false; btn.textContent='CREATE ACCOUNT'; }
+}
+
+document.addEventListener('keydown', e => {
+  if (e.key==='Enter') {
+    if (document.getElementById('form-login').classList.contains('active')) doLogin();
+    else doRegister();
+  }
+});
+</script>
+</body>
+</html>

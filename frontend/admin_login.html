@@ -1,0 +1,71 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8"><meta name="viewport" content="width=device-width,initial-scale=1">
+<title>ECU Analytics — Admin Login</title>
+<link href="https://fonts.googleapis.com/css2?family=Orbitron:wght@700;900&family=DM+Sans:wght@400;600&display=swap" rel="stylesheet">
+<style>
+*{margin:0;padding:0;box-sizing:border-box}
+body{min-height:100vh;background:#050810;color:#e2e8f0;font-family:'DM Sans',sans-serif;
+  display:flex;align-items:center;justify-content:center;
+  background-image:radial-gradient(ellipse at 30% 40%,rgba(239,68,68,0.06),transparent 55%)}
+.card{background:#0a1020;border:1px solid rgba(239,68,68,0.25);border-radius:16px;
+  padding:40px;width:400px;box-shadow:0 24px 80px rgba(0,0,0,0.6)}
+.logo{font-family:'Orbitron',monospace;font-size:20px;font-weight:900;color:#ef4444;
+  text-align:center;margin-bottom:4px;letter-spacing:2px}
+.sub{text-align:center;font-size:12px;color:#64748b;margin-bottom:28px}
+.badge{display:inline-block;padding:3px 12px;background:rgba(239,68,68,.12);
+  border:1px solid rgba(239,68,68,.3);border-radius:12px;font-size:10px;
+  color:#ef4444;letter-spacing:1px;font-weight:700;margin:0 auto 20px;display:block;width:fit-content;text-align:center}
+.field{margin-bottom:15px}
+label{display:block;font-size:11px;font-weight:600;color:#64748b;letter-spacing:1px;
+  text-transform:uppercase;margin-bottom:5px}
+input{width:100%;background:#0f1830;border:1px solid rgba(255,255,255,0.08);border-radius:8px;
+  padding:11px 14px;color:#e2e8f0;font-size:14px;outline:none;transition:border .2s}
+input:focus{border-color:#ef4444}
+.btn{width:100%;padding:13px;background:#ef4444;border:none;border-radius:8px;
+  color:white;font-size:14px;font-weight:700;cursor:pointer;margin-top:6px;
+  font-family:'DM Sans',sans-serif;transition:all .2s}
+.btn:hover{background:#f87171;transform:translateY(-1px)}
+.btn:disabled{opacity:.5;cursor:not-allowed;transform:none}
+.err{background:rgba(239,68,68,.1);border:1px solid rgba(239,68,68,.3);color:#fca5a5;
+  border-radius:7px;padding:10px 14px;font-size:13px;margin-bottom:12px;display:none}
+.back{margin-top:16px;text-align:center;font-size:12px;color:#475569}
+.back a{color:#64748b;text-decoration:none}
+</style>
+</head>
+<body>
+<div class="card">
+  <div class="logo">🛡️ ADMIN PANEL</div>
+  <div class="sub">ECU Analytics — Administrator Access</div>
+  <div class="badge">RESTRICTED ACCESS</div>
+  <div class="err" id="err"></div>
+  <div class="field"><label>Admin Email</label><input type="email" id="email" placeholder="admin@ecu.com"></div>
+  <div class="field"><label>Password</label><input type="password" id="pass" placeholder="••••••••"></div>
+  <button class="btn" id="btn" onclick="doLogin()">Login as Admin →</button>
+  <div class="back"><a href="login.html">← Back to user login</a></div>
+</div>
+<script>
+const API = '/api';
+async function doLogin() {
+  const err  = document.getElementById('err');
+  const btn  = document.getElementById('btn');
+  const email = document.getElementById('email').value.trim();
+  const pass  = document.getElementById('pass').value;
+  err.style.display = 'none';
+  if (!email||!pass) { err.textContent='Fill all fields'; err.style.display='block'; return; }
+  btn.disabled=true; btn.textContent='Logging in...';
+  try {
+    const res  = await fetch(API+'/auth/login', { method:'POST', credentials:'include',
+      headers:{'Content-Type':'application/json'}, body:JSON.stringify({email,password:pass}) });
+    const data = await res.json();
+    if (!res.ok) { err.textContent=data.error||'Login failed'; err.style.display='block'; return; }
+    if (!data.is_admin) { err.textContent='Not an admin account'; err.style.display='block'; return; }
+    window.location.href = 'admin_dashboard.html';
+  } catch(e) { err.textContent='Cannot connect to server. Is it running?'; err.style.display='block'; }
+  finally { btn.disabled=false; btn.textContent='Login as Admin →'; }
+}
+document.addEventListener('keydown', e => { if(e.key==='Enter') doLogin(); });
+</script>
+</body>
+</html>

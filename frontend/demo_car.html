@@ -1,0 +1,1504 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width,initial-scale=1">
+  <title>ECU Analytics — Virtual Car Demo</title>
+  <link
+    href="https://fonts.googleapis.com/css2?family=Orbitron:wght@400;700;900&family=Rajdhani:wght@500;600;700&display=swap"
+    rel="stylesheet">
+  <script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.0/dist/chart.umd.min.js"></script>
+  <style>
+    :root {
+      --bg: #050810;
+      --surf: #0a1020;
+      --card: #0f1830;
+      --teal: #00d2aa;
+      --amber: #f59e0b;
+      --red: #ef4444;
+      --green: #22c55e;
+      --purple: #818cf8;
+      --text: #e2e8f0;
+      --muted: #64748b;
+      --border: rgba(0, 210, 170, 0.15)
+    }
+
+    * {
+      margin: 0;
+      padding: 0;
+      box-sizing: border-box
+    }
+
+    html,
+    body {
+      height: 100%;
+      overflow: hidden;
+      background: var(--bg);
+      color: var(--text);
+      font-family: 'Rajdhani', sans-serif
+    }
+
+    body {
+      display: grid;
+      grid-template-rows: 52px 1fr;
+      grid-template-columns: 1fr 330px
+    }
+
+    /* Topbar */
+    .topbar {
+      grid-column: 1/3;
+      background: var(--surf);
+      border-bottom: 1px solid var(--border);
+      display: flex;
+      align-items: center;
+      padding: 0 16px;
+      gap: 10px
+    }
+
+    .logo {
+      font-family: 'Orbitron', monospace;
+      font-size: 13px;
+      font-weight: 900;
+      color: var(--teal)
+    }
+
+    .tb-badge {
+      padding: 2px 9px;
+      border-radius: 10px;
+      font-size: 10px;
+      font-weight: 700;
+      letter-spacing: 1px;
+      text-transform: uppercase
+    }
+
+    .live-badge {
+      background: rgba(239, 68, 68, .15);
+      border: 1px solid rgba(239, 68, 68, .4);
+      color: var(--red)
+    }
+
+    .profile-badge {
+      padding: 2px 12px;
+      border-radius: 10px;
+      font-size: 11px;
+      font-weight: 700;
+      letter-spacing: 1px
+    }
+
+    .pb-eco {
+      background: rgba(34, 197, 94, .12);
+      border: 1px solid rgba(34, 197, 94, .3);
+      color: var(--green)
+    }
+
+    .pb-normal {
+      background: rgba(245, 158, 11, .12);
+      border: 1px solid rgba(245, 158, 11, .3);
+      color: var(--amber)
+    }
+
+    .pb-aggressive {
+      background: rgba(239, 68, 68, .18);
+      border: 1px solid rgba(239, 68, 68, .4);
+      color: var(--red);
+      animation: apulse .8s infinite
+    }
+
+    @keyframes apulse {
+
+      0%,
+      100% {
+        opacity: 1
+      }
+
+      50% {
+        opacity: .5
+      }
+    }
+
+    .tb-right {
+      margin-left: auto;
+      display: flex;
+      align-items: center;
+      gap: 10px;
+      font-size: 11px;
+      color: var(--muted)
+    }
+
+    .tb-right b {
+      font-family: 'Orbitron', monospace;
+      font-size: 11px;
+      color: var(--text)
+    }
+
+    .btn-back {
+      padding: 4px 13px;
+      background: rgba(255, 255, 255, .06);
+      border: 1px solid rgba(255, 255, 255, .1);
+      border-radius: 6px;
+      color: var(--muted);
+      font-size: 11px;
+      cursor: pointer;
+      text-decoration: none;
+      transition: all .2s
+    }
+
+    .btn-back:hover {
+      color: var(--text)
+    }
+
+    .ml-pill {
+      padding: 2px 10px;
+      border-radius: 10px;
+      font-size: 10px;
+      font-weight: 700;
+      letter-spacing: 1px
+    }
+
+    .ml-on {
+      background: rgba(34, 197, 94, .1);
+      border: 1px solid rgba(34, 197, 94, .3);
+      color: var(--green)
+    }
+
+    .ml-off {
+      background: rgba(100, 116, 139, .1);
+      border: 1px solid rgba(100, 116, 139, .2);
+      color: var(--muted)
+    }
+
+    .ml-busy {
+      background: rgba(129, 140, 248, .1);
+      border: 1px solid rgba(129, 140, 248, .3);
+      color: var(--purple);
+      animation: mlblink .5s infinite
+    }
+
+    @keyframes mlblink {
+
+      0%,
+      100% {
+        opacity: 1
+      }
+
+      50% {
+        opacity: .4
+      }
+    }
+
+    /* Road scene */
+    .scene {
+      position: relative;
+      overflow: hidden;
+      background: var(--bg)
+    }
+
+    .sky {
+      position: absolute;
+      inset: 0;
+      height: 52%;
+      background: linear-gradient(180deg, #020510 0%, #0a1830 100%)
+    }
+
+    .ground {
+      position: absolute;
+      bottom: 0;
+      left: 0;
+      right: 0;
+      height: 50%;
+      background: linear-gradient(180deg, #1a1a2e, #0e0e1e)
+    }
+
+    .road {
+      position: absolute;
+      bottom: 0;
+      left: 0;
+      right: 0;
+      height: 50%;
+      background: linear-gradient(180deg, #1a1e2e, #0f1020);
+      clip-path: polygon(22% 0%, 78% 0%, 100% 100%, 0% 100%)
+    }
+
+    .lane-marks {
+      position: absolute;
+      bottom: 0;
+      left: 0;
+      right: 0;
+      height: 50%;
+      overflow: hidden
+    }
+
+    .lm {
+      position: absolute;
+      height: 6px;
+      background: rgba(255, 200, 50, .5);
+      border-radius: 3px;
+      top: 30%
+    }
+
+    .stars-wrap {
+      position: absolute;
+      top: 0;
+      left: 0;
+      right: 0;
+      height: 52%;
+      pointer-events: none
+    }
+
+    /* Car */
+    .car-wrap {
+      position: absolute;
+      bottom: 12%;
+      left: 50%;
+      transform: translateX(-50%);
+      width: 320px;
+      z-index: 10;
+      transition: transform .05s
+    }
+
+    .speed-lines {
+      position: absolute;
+      inset: 0;
+      opacity: 0;
+      transition: opacity .3s;
+      pointer-events: none
+    }
+
+    .sl {
+      position: absolute;
+      height: 1.5px;
+      background: linear-gradient(90deg, transparent, rgba(0, 210, 170, .4), transparent);
+      animation: slm .22s linear infinite
+    }
+
+    @keyframes slm {
+      from {
+        left: -40%
+      }
+
+      to {
+        left: 140%
+      }
+    }
+
+    /* Profile banner on scene */
+    .scene-banner {
+      position: absolute;
+      top: 12px;
+      left: 50%;
+      transform: translateX(-50%);
+      padding: 6px 20px;
+      border-radius: 18px;
+      font-family: 'Orbitron', monospace;
+      font-size: 11px;
+      font-weight: 700;
+      letter-spacing: 2px;
+      backdrop-filter: blur(8px);
+      transition: all .4s;
+      white-space: nowrap;
+      z-index: 20
+    }
+
+    .overspeed-warn {
+      position: absolute;
+      top: 52px;
+      left: 50%;
+      transform: translateX(-50%);
+      padding: 5px 16px;
+      background: rgba(239, 68, 68, .2);
+      border: 2px solid var(--red);
+      border-radius: 7px;
+      font-family: 'Orbitron', monospace;
+      font-size: 10px;
+      font-weight: 700;
+      color: var(--red);
+      letter-spacing: 2px;
+      display: none;
+      animation: owarn .5s infinite;
+      z-index: 20
+    }
+
+    @keyframes owarn {
+
+      0%,
+      100% {
+        opacity: 1
+      }
+
+      50% {
+        opacity: .3
+      }
+    }
+
+    /* Gauges */
+    .gauges {
+      position: absolute;
+      bottom: 8px;
+      left: 50%;
+      transform: translateX(-50%);
+      display: flex;
+      gap: 10px;
+      z-index: 15
+    }
+
+    .gauge {
+      text-align: center
+    }
+
+    .gauge canvas {
+      display: block
+    }
+
+    .gauge-lbl {
+      font-size: 8px;
+      color: var(--muted);
+      letter-spacing: 1.5px;
+      text-transform: uppercase;
+      margin-top: 2px
+    }
+
+    /* ML overlay on scene */
+    .ml-overlay {
+      position: absolute;
+      bottom: 105px;
+      right: 12px;
+      background: rgba(10, 16, 32, .88);
+      border: 1px solid rgba(0, 210, 170, .2);
+      border-radius: 10px;
+      padding: 11px 14px;
+      min-width: 155px;
+      z-index: 15
+    }
+
+    .mlo-title {
+      font-size: 9px;
+      font-weight: 700;
+      letter-spacing: 2px;
+      text-transform: uppercase;
+      color: var(--muted);
+      margin-bottom: 7px
+    }
+
+    .mlo-row {
+      display: flex;
+      justify-content: space-between;
+      gap: 10px;
+      font-size: 10px;
+      margin-bottom: 3px
+    }
+
+    .mlo-key {
+      color: var(--muted)
+    }
+
+    .mlo-val {
+      font-family: 'Orbitron', monospace;
+      font-size: 10px
+    }
+
+    /* Control panel */
+    .ctrl {
+      background: var(--surf);
+      border-left: 1px solid var(--border);
+      overflow-y: auto;
+      overflow-x: hidden;
+      padding: 12px;
+      display: flex;
+      flex-direction: column;
+      gap: 10px
+    }
+
+    .ctrl::-webkit-scrollbar {
+      width: 3px
+    }
+
+    .ctrl::-webkit-scrollbar-thumb {
+      background: rgba(0, 210, 170, .2)
+    }
+
+    .csec {
+      background: var(--card);
+      border: 1px solid var(--border);
+      border-radius: 9px;
+      padding: 12px
+    }
+
+    .ctitle {
+      font-size: 10px;
+      font-weight: 700;
+      letter-spacing: 2px;
+      text-transform: uppercase;
+      color: var(--muted);
+      margin-bottom: 10px
+    }
+
+    /* Pedals */
+    .pedals {
+      display: grid;
+      grid-template-columns: 1fr 1fr;
+      gap: 8px;
+      margin-bottom: 10px
+    }
+
+    .pedal {
+      height: 62px;
+      border-radius: 9px;
+      border: 2px solid;
+      cursor: pointer;
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      justify-content: center;
+      gap: 3px;
+      font-family: 'Orbitron', monospace;
+      font-size: 8px;
+      font-weight: 700;
+      letter-spacing: 1px;
+      text-transform: uppercase;
+      transition: all .1s;
+      user-select: none;
+      -webkit-user-select: none
+    }
+
+    .p-acc {
+      background: rgba(0, 210, 170, .05);
+      border-color: rgba(0, 210, 170, .25);
+      color: var(--teal)
+    }
+
+    .p-acc.on {
+      background: rgba(0, 210, 170, .2);
+      border-color: var(--teal);
+      box-shadow: 0 0 16px rgba(0, 210, 170, .3)
+    }
+
+    .p-brk {
+      background: rgba(239, 68, 68, .05);
+      border-color: rgba(239, 68, 68, .25);
+      color: var(--red)
+    }
+
+    .p-brk.on {
+      background: rgba(239, 68, 68, .2);
+      border-color: var(--red);
+      box-shadow: 0 0 16px rgba(239, 68, 68, .3)
+    }
+
+    .pedal-ico {
+      font-size: 18px
+    }
+
+    .pedal-key {
+      font-size: 8px;
+      color: var(--muted)
+    }
+
+    /* Slider */
+    .sl-grp {
+      margin-bottom: 8px;
+      overflow: hidden;
+      width: 100%
+    }
+
+    .sl-row {
+      display: flex;
+      justify-content: space-between;
+      font-size: 10px;
+      color: var(--muted);
+      margin-bottom: 3px
+    }
+
+    .sl-val {
+      font-family: 'Orbitron', monospace;
+      font-size: 10px;
+      color: var(--text)
+    }
+
+    input[type=range] {
+      width: 100%;
+      max-width: 100%;
+      -webkit-appearance: none;
+      height: 4px;
+      border-radius: 2px;
+      background: rgba(255, 255, 255, .07);
+      outline: none;
+      cursor: pointer;
+      display: block
+    }
+
+    input[type=range]::-webkit-slider-thumb {
+      -webkit-appearance: none;
+      width: 12px;
+      height: 12px;
+      border-radius: 50%;
+      cursor: pointer
+    }
+
+    .st::-webkit-slider-thumb {
+      background: var(--teal)
+    }
+
+    .sl::-webkit-slider-thumb {
+      background: var(--purple)
+    }
+
+    .sc::-webkit-slider-thumb {
+      background: var(--amber)
+    }
+
+    /* Gears */
+    .gears {
+      display: grid;
+      grid-template-columns: repeat(6, 1fr);
+      gap: 4px;
+      margin-bottom: 8px
+    }
+
+    .gbtn {
+      padding: 5px 2px;
+      border-radius: 6px;
+      border: 1px solid rgba(255, 255, 255, .1);
+      background: rgba(255, 255, 255, .03);
+      cursor: pointer;
+      font-family: 'Orbitron', monospace;
+      font-size: 10px;
+      font-weight: 700;
+      color: var(--muted);
+      text-align: center;
+      transition: all .15s
+    }
+
+    .gbtn.active {
+      background: rgba(0, 210, 170, .15);
+      border-color: var(--teal);
+      color: var(--teal)
+    }
+
+    /* Modes */
+    .modes {
+      display: grid;
+      grid-template-columns: 1fr 1fr 1fr;
+      gap: 6px
+    }
+
+    .mbtn {
+      padding: 7px 2px;
+      border-radius: 7px;
+      border: 1px solid;
+      cursor: pointer;
+      text-align: center;
+      font-family: 'Rajdhani', sans-serif;
+      font-size: 10px;
+      font-weight: 700;
+      letter-spacing: 1px;
+      text-transform: uppercase;
+      transition: all .15s
+    }
+
+    .m-eco {
+      border-color: rgba(34, 197, 94, .2);
+      color: var(--green);
+      background: rgba(34, 197, 94, .04)
+    }
+
+    .m-eco.active {
+      background: rgba(34, 197, 94, .15);
+      border-color: var(--green)
+    }
+
+    .m-nrm {
+      border-color: rgba(245, 158, 11, .2);
+      color: var(--amber);
+      background: rgba(245, 158, 11, .04)
+    }
+
+    .m-nrm.active {
+      background: rgba(245, 158, 11, .15);
+      border-color: var(--amber)
+    }
+
+    .m-spt {
+      border-color: rgba(239, 68, 68, .2);
+      color: var(--red);
+      background: rgba(239, 68, 68, .04)
+    }
+
+    .m-spt.active {
+      background: rgba(239, 68, 68, .15);
+      border-color: var(--red)
+    }
+
+    /* Telem */
+    .tgrid {
+      display: grid;
+      grid-template-columns: 1fr 1fr;
+      gap: 6px
+    }
+
+    .titem {
+      background: rgba(0, 0, 0, .25);
+      border-radius: 6px;
+      padding: 7px
+    }
+
+    .tlbl {
+      font-size: 8px;
+      color: var(--muted);
+      letter-spacing: 1.5px;
+      text-transform: uppercase
+    }
+
+    .tval {
+      font-family: 'Orbitron', monospace;
+      font-size: 13px;
+      font-weight: 700;
+      margin-top: 2px
+    }
+
+    .tc {
+      color: var(--teal)
+    }
+
+    .ta {
+      color: var(--amber)
+    }
+
+    .tg {
+      color: var(--green)
+    }
+
+    .tr {
+      color: var(--red)
+    }
+
+    .tp {
+      color: var(--purple)
+    }
+
+    /* ML box in panel */
+    .ml-box {
+      background: rgba(0, 210, 170, .05);
+      border: 1px solid rgba(0, 210, 170, .18);
+      border-radius: 7px;
+      padding: 9px;
+      margin-top: 8px
+    }
+
+    .mlb-title {
+      font-size: 9px;
+      font-weight: 700;
+      letter-spacing: 2px;
+      text-transform: uppercase;
+      color: var(--teal);
+      margin-bottom: 7px
+    }
+
+    .mlb-grid {
+      display: grid;
+      grid-template-columns: 1fr 1fr;
+      gap: 5px
+    }
+
+    .mlb-item {
+      background: rgba(0, 0, 0, .2);
+      border-radius: 5px;
+      padding: 6px
+    }
+
+    .mlb-lbl {
+      font-size: 8px;
+      color: var(--muted);
+      letter-spacing: 1px;
+      text-transform: uppercase
+    }
+
+    .mlb-val {
+      font-family: 'Orbitron', monospace;
+      font-size: 11px;
+      font-weight: 700;
+      margin-top: 1px
+    }
+
+    .mini-wrap {
+      height: 52px;
+      margin-top: 8px;
+      position: relative
+    }
+
+    .conn-bar {
+      padding: 6px 10px;
+      border-radius: 7px;
+      font-size: 10px;
+      display: flex;
+      align-items: center;
+      gap: 6px
+    }
+
+    .cb-on {
+      background: rgba(34, 197, 94, .07);
+      border: 1px solid rgba(34, 197, 94, .2);
+      color: var(--green)
+    }
+
+    .cb-off {
+      background: rgba(100, 116, 139, .07);
+      border: 1px solid rgba(100, 116, 139, .15);
+      color: var(--muted)
+    }
+
+    .cb-send {
+      background: rgba(129, 140, 248, .07);
+      border: 1px solid rgba(129, 140, 248, .2);
+      color: var(--purple);
+      animation: mlblink .6s infinite
+    }
+
+    .cb-dot {
+      width: 6px;
+      height: 6px;
+      border-radius: 50%;
+      background: currentColor;
+      flex-shrink: 0
+    }
+
+    .keyhints {
+      display: flex;
+      flex-wrap: wrap;
+      gap: 4px
+    }
+
+    .kh {
+      display: flex;
+      align-items: center;
+      gap: 3px;
+      font-size: 9px;
+      color: var(--muted)
+    }
+
+    .kc {
+      background: rgba(255, 255, 255, .08);
+      border: 1px solid rgba(255, 255, 255, .14);
+      border-radius: 3px;
+      padding: 1px 5px;
+      font-family: 'Orbitron', monospace;
+      font-size: 8px;
+      color: var(--text)
+    }
+
+    /* Responsive for mobile */
+    @media(max-width:768px) {
+      body {
+        grid-template-rows: 52px 1fr 1fr;
+        grid-template-columns: 1fr
+      }
+
+      .ctrl {
+        grid-column: 1;
+        border-left: none;
+        border-top: 1px solid var(--border);
+        overflow-y: auto;
+        max-height: 55vh
+      }
+
+      .scene {
+        grid-column: 1;
+        min-height: 45vw
+      }
+
+      .topbar {
+        grid-column: 1
+      }
+
+      .car-wrap {
+        width: 240px
+      }
+
+      .gauges {
+        gap: 6px
+      }
+
+      .gauge canvas {
+        width: 85px !important;
+        height: 51px !important
+      }
+
+      .ml-overlay {
+        bottom: 90px;
+        right: 8px;
+        min-width: 130px;
+        padding: 8px 10px
+      }
+    }
+
+    @media(max-width:480px) {
+      .gauges {
+        gap: 4px
+      }
+
+      .gauge canvas {
+        width: 70px !important;
+        height: 42px !important
+      }
+
+      .tb-right span {
+        display: none
+      }
+
+      .tb-right b {
+        display: none
+      }
+    }
+  </style>
+</head>
+
+<body>
+
+  <!-- TOPBAR -->
+  <div class="topbar">
+    <div class="logo">⚡ ECU DEMO</div>
+    <div class="tb-badge live-badge">● LIVE</div>
+    <div class="profile-badge pb-eco" id="tb-profile">ECO</div>
+    <div class="ml-pill ml-off" id="ml-pill">ML: Offline</div>
+    <div class="tb-right">
+      <span>Fuel: <b id="tb-fuel">--</b> L/h</span>
+      <span>Speed: <b id="tb-spd">0</b> km/h</span>
+      <span>RPM: <b id="tb-rpm">800</b></span>
+      <span>Sent: <b id="tb-sent" style="color:var(--teal)">0</b></span>
+      <a class="btn-back" href="user_dashboard.html">← Dashboard</a>
+    </div>
+  </div>
+
+  <!-- SCENE -->
+  <div class="scene" id="scene">
+    <div class="sky"></div>
+    <div class="stars-wrap" id="stars"></div>
+    <div class="ground"></div>
+    <div class="road"></div>
+    <div class="lane-marks" id="lanes"></div>
+
+    <!-- Car SVG -->
+    <div class="car-wrap" id="car-wrap">
+      <div class="speed-lines" id="sl-wrap">
+        <div class="sl" style="top:35%;width:200px;animation-delay:0s"></div>
+        <div class="sl" style="top:50%;width:160px;animation-delay:-.08s"></div>
+        <div class="sl" style="top:65%;width:180px;animation-delay:-.17s"></div>
+      </div>
+      <svg viewBox="0 0 400 155" xmlns="http://www.w3.org/2000/svg">
+        <!-- Shadow -->
+        <ellipse cx="200" cy="152" rx="155" ry="7" fill="rgba(0,0,0,0.45)" />
+        <!-- Headlight glow -->
+        <path d="M370 70 L430 38 L430 105 Z" fill="rgba(255,240,100,0.12)" />
+        <!-- Body -->
+        <rect x="38" y="94" width="316" height="44" rx="8" fill="#18203e" />
+        <!-- Roof -->
+        <path d="M78 94 Q100 50 150 43 L262 43 Q314 51 322 94 Z" fill="#1d2652" />
+        <!-- Window -->
+        <path d="M100 90 Q115 56 153 48 L268 48 Q306 56 305 90 Z" fill="#232e5f" />
+        <!-- Windshield panels -->
+        <path d="M150 46 L163 75 L205 75 L245 75 L258 46 Z" fill="rgba(100,180,255,0.13)" stroke="rgba(0,210,170,0.3)"
+          stroke-width="1" />
+        <path d="M265 47 L295 80 L275 80 Z" fill="rgba(100,180,255,0.09)" stroke="rgba(0,210,170,0.15)"
+          stroke-width="1" />
+        <path d="M95 80 L114 54 Q130 47 148 46 L158 77 Z" fill="rgba(100,180,255,0.07)" />
+        <!-- Front/rear -->
+        <path d="M318 94 L358 94 Q380 95 382 105 L354 105 Z" fill="#141c36" />
+        <path d="M347 105 Q382 105 384 115 L374 130 Q340 132 322 129 L321 116 Z" fill="#18203e" />
+        <path d="M41 105 Q12 105 11 115 L21 130 Q54 132 76 129 L78 116 Z" fill="#18203e" />
+        <!-- Centre lines -->
+        <line x1="200" y1="55" x2="200" y2="133" stroke="rgba(0,210,170,0.12)" stroke-width="1" />
+        <!-- Headlights -->
+        <ellipse cx="374" cy="108" rx="12" ry="6" fill="#fff9c0" opacity="0.95" />
+        <ellipse cx="374" cy="108" rx="7" ry="4" fill="white" />
+        <!-- Brake lights -->
+        <rect id="brake-lt" x="24" y="100" width="20" height="10" rx="3" fill="rgba(239,68,68,0.9)" opacity="0.3" />
+        <!-- Body lines -->
+        <rect x="38" y="99" width="316" height="2" rx="1" fill="rgba(0,210,170,0.5)" />
+        <rect x="38" y="132" width="316" height="1.5" rx="1" fill="rgba(0,210,170,0.25)" />
+        <!-- Wheels -->
+        <g id="wfl" transform="translate(100,140)">
+          <circle r="20" fill="#0c1122" stroke="rgba(0,210,170,0.4)" stroke-width="2" />
+          <circle r="12" fill="#141d38" stroke="rgba(0,210,170,0.25)" stroke-width="1.5" />
+          <circle r="3.5" fill="#00d2aa" />
+          <line x1="-10" y1="0" x2="10" y2="0" stroke="rgba(0,210,170,0.6)" stroke-width="2" />
+          <line x1="0" y1="-10" x2="0" y2="10" stroke="rgba(0,210,170,0.6)" stroke-width="2" />
+          <line x1="-7" y1="-7" x2="7" y2="7" stroke="rgba(0,210,170,0.4)" stroke-width="1.5" />
+          <line x1="7" y1="-7" x2="-7" y2="7" stroke="rgba(0,210,170,0.4)" stroke-width="1.5" />
+        </g>
+        <g id="wrl" transform="translate(302,140)">
+          <circle r="20" fill="#0c1122" stroke="rgba(0,210,170,0.4)" stroke-width="2" />
+          <circle r="12" fill="#141d38" stroke="rgba(0,210,170,0.25)" stroke-width="1.5" />
+          <circle r="3.5" fill="#00d2aa" />
+          <line x1="-10" y1="0" x2="10" y2="0" stroke="rgba(0,210,170,0.6)" stroke-width="2" />
+          <line x1="0" y1="-10" x2="0" y2="10" stroke="rgba(0,210,170,0.6)" stroke-width="2" />
+          <line x1="-7" y1="-7" x2="7" y2="7" stroke="rgba(0,210,170,0.4)" stroke-width="1.5" />
+          <line x1="7" y1="-7" x2="-7" y2="7" stroke="rgba(0,210,170,0.4)" stroke-width="1.5" />
+        </g>
+      </svg>
+    </div>
+
+    <div class="scene-banner pb-eco" id="scene-banner">🌿 ECO DRIVING</div>
+    <div class="overspeed-warn" id="os-warn">⚠ OVERSPEEDING — REDUCE SPEED ⚠</div>
+
+    <!-- ML overlay on scene -->
+    <div class="ml-overlay">
+      <div class="mlo-title">🧠 ML Prediction</div>
+      <div class="mlo-row"><span class="mlo-key">XGBoost:</span><span class="mlo-val tc" id="mlo-xgb">--</span></div>
+      <div class="mlo-row"><span class="mlo-key">Ridge:</span><span class="mlo-val tp" id="mlo-ridge">--</span></div>
+      <div class="mlo-row"><span class="mlo-key">SVR:</span><span class="mlo-val ta" id="mlo-svr">--</span></div>
+      <div class="mlo-row" style="margin-top:5px;padding-top:5px;border-top:1px solid rgba(255,255,255,.06)">
+        <span class="mlo-key">Profile:</span><span class="mlo-val tg" id="mlo-lbl">Eco</span>
+      </div>
+      <div class="mlo-row">
+        <span class="mlo-key">DB #:</span><span class="mlo-val" id="mlo-id" style="color:var(--muted)">--</span>
+      </div>
+    </div>
+
+    <!-- Gauges -->
+    <div class="gauges">
+      <div class="gauge"><canvas id="g-spd" width="110" height="66"></canvas>
+        <div class="gauge-lbl">km/h</div>
+      </div>
+      <div class="gauge"><canvas id="g-rpm" width="110" height="66"></canvas>
+        <div class="gauge-lbl">RPM ×1k</div>
+      </div>
+      <div class="gauge"><canvas id="g-fuel" width="110" height="66"></canvas>
+        <div class="gauge-lbl">Fuel L/h</div>
+      </div>
+      <div class="gauge"><canvas id="g-load" width="110" height="66"></canvas>
+        <div class="gauge-lbl">Load %</div>
+      </div>
+    </div>
+  </div>
+
+  <!-- CONTROL PANEL -->
+  <div class="ctrl">
+
+    <!-- Connection bar -->
+    <div class="conn-bar cb-off" id="conn-bar">
+      <div class="cb-dot"></div>
+      <span id="conn-txt">Connecting to backend...</span>
+      <span style="margin-left:auto;font-size:9px;color:var(--muted)" id="conn-ms"></span>
+    </div>
+
+    <!-- Pedals -->
+    <div class="csec">
+      <div class="ctitle">🎮 Drive Controls</div>
+      <div class="pedals">
+        <button class="pedal p-acc" id="p-acc" onmousedown="setAccel(1)" onmouseup="setAccel(0)"
+          onmouseleave="setAccel(0)" ontouchstart="setAccel(1);return false" ontouchend="setAccel(0)">
+          <span class="pedal-ico">▲</span><span>ACCELERATE</span><span class="pedal-key">W / ↑</span>
+        </button>
+        <button class="pedal p-brk" id="p-brk" onmousedown="setBrake(1)" onmouseup="setBrake(0)"
+          onmouseleave="setBrake(0)" ontouchstart="setBrake(1);return false" ontouchend="setBrake(0)">
+          <span class="pedal-ico">▼</span><span>BRAKE</span><span class="pedal-key">S / ↓</span>
+        </button>
+      </div>
+      <div class="sl-grp">
+        <div class="sl-row"><span>Throttle</span><span class="sl-val"><span id="lbl-thr">0</span>%</span></div>
+        <input type="range" class="st" min="0" max="100" value="0" id="thr-range"
+          oninput="S.throttle=+this.value;document.getElementById('lbl-thr').textContent=this.value">
+      </div>
+    </div>
+
+    <!-- Gear & Mode -->
+    <div class="csec">
+      <div class="ctitle">⚙ Gear &amp; Drive Mode</div>
+      <div class="gears">
+        <button class="gbtn" onclick="setGear('R')">R</button>
+        <button class="gbtn active" id="g-N" onclick="setGear('N')">N</button>
+        <button class="gbtn" id="g-1" onclick="setGear('1')">1</button>
+        <button class="gbtn" id="g-2" onclick="setGear('2')">2</button>
+        <button class="gbtn" id="g-3" onclick="setGear('3')">3</button>
+        <button class="gbtn" id="g-4" onclick="setGear('4')">4</button>
+      </div>
+      <div class="modes">
+        <button class="mbtn m-eco active" id="m-eco" onclick="setMode('eco')">🌿 Eco</button>
+        <button class="mbtn m-nrm" id="m-nrm" onclick="setMode('normal')">🚗 Normal</button>
+        <button class="mbtn m-spt" id="m-spt" onclick="setMode('sport')">🔥 Sport</button>
+      </div>
+
+      <!-- Gear speed reference table -->
+      <div style="margin-top:10px">
+        <div
+          style="font-size:9px;font-weight:700;letter-spacing:1.5px;text-transform:uppercase;color:var(--muted);margin-bottom:6px">
+          📋 Gear Speed Limits (km/h)</div>
+        <table id="gear-table"
+          style="width:100%;border-collapse:collapse;font-size:9px;font-family:'Orbitron',monospace">
+          <thead>
+            <tr>
+              <th
+                style="text-align:left;padding:3px 5px;color:var(--muted);border-bottom:1px solid rgba(255,255,255,.08)">
+                Gear</th>
+              <th
+                style="text-align:center;padding:3px 5px;color:var(--green);border-bottom:1px solid rgba(255,255,255,.08)">
+                🌿 Eco</th>
+              <th
+                style="text-align:center;padding:3px 5px;color:var(--amber);border-bottom:1px solid rgba(255,255,255,.08)">
+                🚗 Normal</th>
+              <th
+                style="text-align:center;padding:3px 5px;color:var(--red);border-bottom:1px solid rgba(255,255,255,.08)">
+                🔥 Sport</th>
+            </tr>
+          </thead>
+          <tbody>
+            <tr id="gr-N" class="gear-row">
+              <td style="padding:3px 5px;color:var(--muted)">N</td>
+              <td style="text-align:center;padding:3px 5px">0</td>
+              <td style="text-align:center;padding:3px 5px">0</td>
+              <td style="text-align:center;padding:3px 5px">0</td>
+            </tr>
+            <tr id="gr-1" class="gear-row">
+              <td style="padding:3px 5px;color:var(--muted)">1st</td>
+              <td style="text-align:center;padding:3px 5px">20</td>
+              <td style="text-align:center;padding:3px 5px">20</td>
+              <td style="text-align:center;padding:3px 5px">30</td>
+            </tr>
+            <tr id="gr-2" class="gear-row">
+              <td style="padding:3px 5px;color:var(--muted)">2nd</td>
+              <td style="text-align:center;padding:3px 5px">40</td>
+              <td style="text-align:center;padding:3px 5px">50</td>
+              <td style="text-align:center;padding:3px 5px">60</td>
+            </tr>
+            <tr id="gr-3" class="gear-row">
+              <td style="padding:3px 5px;color:var(--muted)">3rd</td>
+              <td style="text-align:center;padding:3px 5px">60</td>
+              <td style="text-align:center;padding:3px 5px">70</td>
+              <td style="text-align:center;padding:3px 5px">80</td>
+            </tr>
+            <tr id="gr-4" class="gear-row">
+              <td style="padding:3px 5px;color:var(--muted)">4th</td>
+              <td style="text-align:center;padding:3px 5px">80</td>
+              <td style="text-align:center;padding:3px 5px">90</td>
+              <td style="text-align:center;padding:3px 5px">140</td>
+            </tr>
+          </tbody>
+        </table>
+      </div>
+    </div>
+
+
+    <!-- Engine params -->
+    <div class="csec">
+      <div class="ctitle">🔧 Engine Parameters</div>
+      <div class="sl-grp">
+        <div class="sl-row"><span>Coolant Temp</span><span class="sl-val"><span id="lbl-cool">75</span>°C</span></div>
+        <input type="range" class="sc" min="30" max="115" value="75" id="cool-range"
+          oninput="document.getElementById('lbl-cool').textContent=this.value">
+      </div>
+    </div>
+
+    <!-- Live telemetry -->
+    <div class="csec">
+      <div class="ctitle">📡 Telemetry</div>
+      <div class="tgrid">
+        <div class="titem">
+          <div class="tlbl">Speed</div>
+          <div class="tval ta" id="t-spd">0 km/h</div>
+        </div>
+        <div class="titem">
+          <div class="tlbl">RPM</div>
+          <div class="tval tp" id="t-rpm">800</div>
+        </div>
+        <div class="titem">
+          <div class="tlbl">Throttle</div>
+          <div class="tval" id="t-thr">0%</div>
+        </div>
+        <div class="titem">
+          <div class="tlbl">Coolant</div>
+          <div class="tval" id="t-cool">--°C</div>
+        </div>
+      </div>
+      <!-- ML results from backend -->
+      <div class="ml-box">
+        <div class="mlb-title">🧠 ML Results</div>
+        <div class="mlb-grid">
+          <div class="mlb-item">
+            <div class="mlb-lbl">XGBoost</div>
+            <div class="mlb-val tc" id="ml-xgb">-- L/h</div>
+          </div>
+          <div class="mlb-item">
+            <div class="mlb-lbl">Ridge</div>
+            <div class="mlb-val tp" id="ml-ridge">-- L/h</div>
+          </div>
+          <div class="mlb-item">
+            <div class="mlb-lbl">SVR</div>
+            <div class="mlb-val ta" id="ml-svr">-- L/h</div>
+          </div>
+          <div class="mlb-item">
+            <div class="mlb-lbl">Profile</div>
+            <div class="mlb-val tg" id="ml-lbl">--</div>
+          </div>
+        </div>
+        <div style="display:flex;justify-content:space-between;margin-top:6px;font-size:9px;color:var(--muted)">
+          <span>Records: <b style="color:var(--teal)" id="ml-cnt">0</b></span>
+          <span>Log: <b id="ml-logid" style="color:var(--muted)">--</b></span>
+        </div>
+      </div>
+      <div class="mini-wrap"><canvas id="mini-chart"></canvas></div>
+    </div>
+
+    <!-- Keys -->
+    <div class="csec">
+      <div class="ctitle">⌨ Keyboard</div>
+      <div class="keyhints">
+        <div class="kh"><span class="kc">W</span>/<span class="kc">↑</span> Accel</div>
+        <div class="kh"><span class="kc">S</span>/<span class="kc">↓</span> Brake</div>
+        <div class="kh"><span class="kc">1-4</span> Gear</div>
+        <div class="kh"><span class="kc">E</span> Eco</div>
+        <div class="kh"><span class="kc">T</span> Sport</div>
+        <div class="kh"><span class="kc">N</span> Normal</div>
+      </div>
+    </div>
+  </div>
+
+  <script>
+    // ── Config ────────────────────────────────────────────────────────────────────
+    const API = '/api';
+    const SESSION_ID = 'demo-' + Date.now();
+    const SEND_MS = 500;   // POST to backend every 500ms
+    const PHYS_MS = 48;    // physics tick
+
+    // ── Physics state ─────────────────────────────────────────────────────────────
+    const S = {
+      speed: 0, rpm: 800, throttle: 0, _thr_target: 0, load: 20, _dispLoad: 20, _dispFuel: 0.5, coolant: 75, maf: 2, accel: 0, fuel: 0.5,
+      gear: 'N', mode: 'eco', accelerating: false, braking: false
+    };
+    // ── Mode base settings (accel feel & RPM multiplier) ──────────────────────────
+    const MODES = {
+      eco: { accelK: .55, rpmK: .7 },
+      normal: { accelK: 1.0, rpmK: 1.0 },
+      sport: { accelK: 1.9, rpmK: 1.5 }
+    };
+    // ── Gear max speeds per mode (image spec) ──────────────────────────────────────
+    // Gear:        N   R     1    2    3    4
+    const GEAR_MAX_SPD = {
+      eco: { N: 0, R: 10, '1': 20, '2': 40, '3': 60, '4': 80 },
+      normal: { N: 0, R: 10, '1': 20, '2': 50, '3': 70, '4': 90 },
+      sport: { N: 0, R: 10, '1': 30, '2': 60, '3': 80, '4': 140 }
+    };
+    // ── Gear ratio (for RPM & acceleration feel) ───────────────────────────────────
+    const GEAR_R = { N: 0, R: -.8, '1': 1.8, '2': 1.25, '3': .85, '4': .55 };
+    let mlPred = null;
+    let backendOn = false;
+    let sent = 0;
+    let dbCount = 0;
+    let _sending = false;
+    let _ovspSince = 0;
+
+    // ── Stars ─────────────────────────────────────────────────────────────────────
+    const starsEl = document.getElementById('stars');
+    for (let i = 0; i < 80; i++) {
+      const s = document.createElement('div');
+      s.style.cssText = `position:absolute;border-radius:50%;background:white;
+    left:${Math.random() * 100}%;top:${Math.random() * 100}%;
+    width:${Math.random() < .8 ? '1.5px' : '2.5px'};height:${Math.random() < .8 ? '1.5px' : '2.5px'};
+    opacity:${.3 + Math.random() * .6};`;
+      starsEl.appendChild(s);
+    }
+
+    // ── Lane marks ────────────────────────────────────────────────────────────────
+    const lanesEl = document.getElementById('lanes');
+    for (let i = 0; i < 5; i++) {
+      const lm = document.createElement('div');
+      lm.className = 'lm';
+      lm.style.cssText = `width:${55 + Math.random() * 20}px;left:${28 + i * 14}%;animation:lm .7s linear infinite;animation-delay:-${i * .18}s`;
+      lanesEl.appendChild(lm);
+    }
+    const lmStyle = document.createElement('style');
+    lmStyle.textContent = '@keyframes lm{from{transform:translateX(0)}to{transform:translateX(-130px)}}';
+    document.head.appendChild(lmStyle);
+
+    // ── Mini chart ────────────────────────────────────────────────────────────────
+    const miniChart = new Chart(document.getElementById('mini-chart'), {
+      type: 'line',
+      data: {
+        labels: [], datasets: [
+          { data: [], borderColor: '#f59e0b', borderWidth: 1.5, fill: false, tension: .4, pointRadius: 0 },
+          { data: [], borderColor: '#818cf8', borderWidth: 1.5, fill: false, tension: .4, pointRadius: 0 },
+          { data: [], borderColor: '#00d2aa', borderWidth: 1.5, fill: false, tension: .4, pointRadius: 0 },
+        ]
+      },
+      options: {
+        responsive: true, maintainAspectRatio: false, animation: { duration: 0 },
+        plugins: { legend: { display: false } }, scales: { x: { display: false }, y: { display: false } }
+      }
+    });
+
+    // ── Controls ──────────────────────────────────────────────────────────────────
+    function setAccel(on) { S.accelerating = !!on; document.getElementById('p-acc').classList.toggle('on', !!on); }
+    function setBrake(on) {
+      S.braking = !!on; document.getElementById('p-brk').classList.toggle('on', !!on);
+      document.getElementById('brake-lt').style.opacity = on ? '.95' : '.3';
+    }
+    function setGear(g) {
+      S.gear = g;
+      document.querySelectorAll('.gbtn').forEach(b => b.classList.remove('active'));
+      const el = document.getElementById('g-' + g);
+      if (el) el.classList.add('active');
+      else document.querySelectorAll('.gbtn').forEach(b => { if (b.textContent === g) b.classList.add('active'); });
+    }
+    function setMode(m) {
+      S.mode = m;
+      document.getElementById('m-eco').classList.toggle('active', m === 'eco');
+      document.getElementById('m-nrm').classList.toggle('active', m === 'normal');
+      document.getElementById('m-spt').classList.toggle('active', m === 'sport');
+    }
+
+    // Keyboard
+    const keys = {};
+    document.addEventListener('keydown', e => {
+      if (keys[e.key]) return; keys[e.key] = true;
+      if (e.key === 'w' || e.key === 'W' || e.key === 'ArrowUp') { setAccel(1); e.preventDefault(); }
+      if (e.key === 's' || e.key === 'S' || e.key === 'ArrowDown') { setBrake(1); e.preventDefault(); }
+      if (e.key === '1') setGear('1'); if (e.key === '2') setGear('2');
+      if (e.key === '3') setGear('3'); if (e.key === '4') setGear('4');
+      if (e.key === 'e' || e.key === 'E') setMode('eco');
+      if (e.key === 't' || e.key === 'T') setMode('sport');
+      if (e.key === 'n' || e.key === 'N') setMode('normal');
+    });
+    document.addEventListener('keyup', e => {
+      keys[e.key] = false;
+      if (e.key === 'w' || e.key === 'W' || e.key === 'ArrowUp') setAccel(0);
+      if (e.key === 's' || e.key === 'S' || e.key === 'ArrowDown') setBrake(0);
+    });
+
+    // ── Physics ───────────────────────────────────────────────────────────────────
+    function physics() {
+      const m = MODES[S.mode];
+      const r = GEAR_R[S.gear] || 0;
+      const prev = S.speed;
+
+      // Throttle ramp
+      if (S.accelerating) S._thr_target = Math.min(100, S._thr_target + 5 * m.accelK);
+      else if (!S.braking) S._thr_target = Math.max(0, S._thr_target - 4);
+      S.throttle = S.throttle + 0.07 * (S._thr_target - S.throttle);
+
+      // Sync throttle slider
+      document.getElementById('thr-range').value = S.throttle;
+      document.getElementById('lbl-thr').textContent = Math.round(S.throttle);
+
+      // ── Gear-based max speed (from image spec) ───────────────────────────────
+      const gearMax = GEAR_MAX_SPD[S.mode][S.gear] ?? 0;
+
+      if (S.braking) {
+        S.speed = Math.max(0, S.speed - 5.5);
+      } else if (r > 0) {
+        // Accelerate toward gear ceiling (not mode max)
+        const target = (S.throttle / 100) * gearMax;
+        S.speed += (target - S.speed) * 0.07;
+        // Hard clamp to gear max — gear acts as a real governor
+        if (S.speed > gearMax) S.speed = gearMax;
+      } else if (r < 0) {
+        S.speed = Math.max(-10, S.speed - 0.5);
+      } else {
+        // Neutral / coasting
+        S.speed = Math.max(0, S.speed - 0.7);
+      }
+
+      S.accel = (S.speed - prev) / 3.6;
+
+      const rpmTarget = S.gear === 'N'
+        ? 750
+        : Math.max(800, Math.min(7000, (S.speed * 42 * Math.abs(r)) + (S.throttle * 18 * m.rpmK)));
+      S.rpm = S.rpm + 0.08 * (rpmTarget - S.rpm);
+
+      const targetLoad = S.throttle * 0.9 + 10;
+      S.load = S.load + 0.012 * (targetLoad - S.load);
+      S.coolant = +document.getElementById('cool-range').value;
+      S.maf = Math.max(1, S.rpm / 550 + S.throttle / 35);
+      const targetFuel = Math.max(0.3, S.rpm * 0.00258 + S.load * 0.038 + S.throttle * 0.019);
+      S.fuel = S.fuel + 0.06 * (targetFuel - S.fuel);
+      S._dispLoad = S._dispLoad + 0.009 * (S.load - S._dispLoad);
+      S._dispFuel = S._dispFuel + 0.035 * (S.fuel - S._dispFuel);
+    }
+
+    // ── Gauge drawing ─────────────────────────────────────────────────────────────
+    function drawGauge(id, val, maxV, col) {
+      const cv = document.getElementById(id); if (!cv) return;
+      const ctx = cv.getContext('2d'), W = cv.width, H = cv.height;
+      ctx.clearRect(0, 0, W, H);
+      const cx = W / 2, cy = H - 4, r = Math.min(W, H * 2) * .37, p = Math.min(Math.max(val / maxV, 0), 1);
+      ctx.beginPath(); ctx.arc(cx, cy, r, Math.PI, 2 * Math.PI);
+      ctx.strokeStyle = 'rgba(255,255,255,0.07)'; ctx.lineWidth = 5; ctx.stroke();
+      if (p > 0) {
+        ctx.beginPath(); ctx.arc(cx, cy, r, Math.PI, Math.PI + p * Math.PI);
+        ctx.strokeStyle = col; ctx.lineWidth = 5; ctx.lineCap = 'round'; ctx.stroke();
+      }
+      const ang = Math.PI + p * Math.PI;
+      const nx = cx + (r - 2) * Math.cos(ang), ny = cy + (r - 2) * Math.sin(ang);
+      ctx.beginPath(); ctx.moveTo(cx, cy); ctx.lineTo(nx, ny);
+      ctx.strokeStyle = '#fff'; ctx.lineWidth = 1.6; ctx.lineCap = 'round'; ctx.stroke();
+      ctx.beginPath(); ctx.arc(cx, cy, 3, 0, Math.PI * 2); ctx.fillStyle = col; ctx.fill();
+      ctx.font = 'bold 11px Orbitron,monospace'; ctx.fillStyle = col; ctx.textAlign = 'center';
+      const disp = val > 100 ? Math.round(val) : val.toFixed(val < 10 ? 2 : 1);
+      ctx.fillText(disp, cx, cy - 3);
+    }
+
+    // ── Local classify: speed-based (Eco: 0–40, Normal: 40–100, Aggressive: 100+) ──
+    function localClassify() {
+      if (S.speed < 40) return 'Eco';
+      if (S.speed < 100) return 'Normal';
+      return 'Aggressive';
+    }
+
+    // ── Render ────────────────────────────────────────────────────────────────────
+    function render() {
+      const spd = S.speed;
+      const lbl = mlPred ? mlPred.driving_label : localClassify();
+      const fuel = mlPred ? mlPred.fuel_xgb : S.fuel;
+
+      // Gauges (speed gauge drawn after gear-limit block below)
+      drawGauge('g-rpm', S.rpm / 1000, 8, '#818cf8');
+      drawGauge('g-fuel', S._dispFuel, 20, '#00d2aa');
+      drawGauge('g-load', S._dispLoad, 100, '#818cf8');
+
+      // Topbar
+      if (!backendOn) document.getElementById('tb-fuel').textContent = fuel.toFixed(2);
+      document.getElementById('tb-spd').textContent = spd.toFixed(1);
+      document.getElementById('tb-rpm').textContent = Math.round(S.rpm);
+
+      // Telem panel
+      document.getElementById('t-spd').textContent = spd.toFixed(1) + ' km/h';
+      document.getElementById('t-rpm').textContent = Math.round(S.rpm);
+      document.getElementById('t-thr').textContent = Math.round(S.throttle) + '%';
+      document.getElementById('t-cool').textContent = S.coolant.toFixed(0) + '°C';
+
+      // Banner
+      const banner = document.getElementById('scene-banner');
+      const ico = { Eco: '🌿', Normal: '🚗', Aggressive: '🔥' };
+      banner.textContent = ico[lbl] + ' ' + lbl.toUpperCase() + ' DRIVING';
+      banner.className = 'scene-banner pb-' + lbl.toLowerCase();
+
+      // Topbar profile badge
+      const tbP = document.getElementById('tb-profile');
+      tbP.textContent = lbl.toUpperCase();
+      tbP.className = 'profile-badge pb-' + lbl.toLowerCase();
+
+      // Gear-limit warning: show when at 95%+ of gear ceiling, hide for neutral/reverse
+      const gMax = GEAR_MAX_SPD[S.mode][S.gear] ?? 0;
+      const atGearLimit = gMax > 0 && spd >= gMax * 0.95;
+      const osEl = document.getElementById('os-warn');
+      if (atGearLimit && S.gear !== 'N' && S.gear !== 'R') {
+        const mName = S.mode === 'eco' ? 'ECO' : S.mode === 'normal' ? 'NORMAL' : 'SPORT';
+        osEl.textContent = `⬆ SHIFT UP — Gear ${S.gear} limit: ${gMax} km/h (${mName})`;
+        osEl.style.display = 'block';
+      } else {
+        osEl.style.display = 'none';
+      }
+      // Gauges — use gear ceiling as speed gauge max for better resolution
+      drawGauge('g-spd', spd, gMax > 0 ? Math.max(gMax, spd + 1) : 160, spd >= gMax * 0.9 && gMax > 0 ? '#ef4444' : '#f59e0b');
+
+      // Speed lines
+      document.getElementById('sl-wrap').style.opacity = Math.min(spd / 65, 1) * .9;
+      const lspd = Math.max(.15, spd / 40);
+      document.querySelectorAll('.lm').forEach(el => el.style.animationDuration = (.7 / lspd) + 's');
+
+      // Wheel rotation
+      const ang = (Date.now() / 1000) * 360 * lspd;
+      ['wfl', 'wrl'].forEach(id => {
+        const el = document.getElementById(id); if (!el) return;
+        const cx = id === 'wfl' ? 100 : 302, cy = 140;
+        el.setAttribute('transform', `translate(${cx},${cy}) rotate(${ang % 360})`);
+      });
+
+      // Car bounce
+      if (S.accelerating && spd > 5) {
+        document.getElementById('car-wrap').style.transform =
+          `translateX(-50%) translateY(${Math.sin(Date.now() / 85) * 1.4}px)`;
+      } else document.getElementById('car-wrap').style.transform = 'translateX(-50%)';
+
+      // Mini chart
+      miniChart.data.labels.push('');
+      miniChart.data.datasets[0].data.push(spd);
+      miniChart.data.datasets[1].data.push(S.rpm / 100);
+      miniChart.data.datasets[2].data.push(fuel * 4);
+      if (miniChart.data.labels.length > 80) { miniChart.data.labels.shift(); miniChart.data.datasets.forEach(d => d.data.shift()); }
+      miniChart.update('none');
+    }
+
+    // ── Backend POST ──────────────────────────────────────────────────────────────
+    async function sendToBackend() {
+      if (_sending) return;
+      _sending = true;
+      const payload = {
+        session_id: SESSION_ID,
+        engine_rpm: +S.rpm.toFixed(2),
+        vehicle_speed: +S.speed.toFixed(2),
+        throttle_position: +S.throttle.toFixed(2),
+        acceleration: +S.accel.toFixed(3),
+        engine_load: +S.load.toFixed(2),
+        coolant_temperature: +S.coolant.toFixed(1),
+        mass_air_flow: +S.maf.toFixed(3),
+        fuel_injection_rate: +S.fuel.toFixed(3),
+      };
+      setConn('busy');
+      const t0 = Date.now();
+      try {
+        const res = await fetch(API + '/ecu/ingest', {
+          method: 'POST', credentials: 'include',
+          headers: { 'Content-Type': 'application/json' }, body: JSON.stringify(payload)
+        });
+        const ms = Date.now() - t0;
+        if (res.status === 401) { setConn('off', 'Not logged in'); _sending = false; return; }
+        if (!res.ok) { setConn('off', 'Error ' + res.status); _sending = false; return; }
+        const data = await res.json();
+        backendOn = true; sent++; dbCount++;
+        mlPred = data.prediction;
+        applyML(data.prediction, data.log_id);
+        setConn('on', ms + 'ms');
+        document.getElementById('tb-sent').textContent = sent;
+      } catch (_) { backendOn = false; setConn('off', 'Backend offline'); }
+      _sending = false;
+    }
+
+    function applyML(pred, logId) {
+      const lbl = pred.driving_label, f = pred.fuel_xgb;
+      // Overlay
+      document.getElementById('mlo-xgb').textContent = f.toFixed(3) + ' L/h';
+      document.getElementById('mlo-ridge').textContent = pred.fuel_ridge.toFixed(3) + ' L/h';
+      document.getElementById('mlo-svr').textContent = pred.fuel_svr.toFixed(3) + ' L/h';
+      document.getElementById('mlo-lbl').textContent = lbl;
+      document.getElementById('mlo-lbl').className = 'mlo-val ' + (lbl === 'Eco' ? 'tg' : lbl === 'Normal' ? 'ta' : 'tr');
+      document.getElementById('mlo-id').textContent = logId ? '#' + logId : '--';
+      // Panel
+      document.getElementById('ml-xgb').textContent = f.toFixed(3) + ' L/h';
+      document.getElementById('ml-ridge').textContent = pred.fuel_ridge.toFixed(3) + ' L/h';
+      document.getElementById('ml-svr').textContent = pred.fuel_svr.toFixed(3) + ' L/h';
+      document.getElementById('ml-lbl').textContent = lbl;
+      document.getElementById('ml-lbl').className = 'mlb-val ' + (lbl === 'Eco' ? 'tg' : lbl === 'Normal' ? 'ta' : 'tr');
+      document.getElementById('ml-cnt').textContent = dbCount;
+      document.getElementById('ml-logid').textContent = logId ? '#' + logId : '--';
+      // Topbar fuel
+      document.getElementById('tb-fuel').textContent = f.toFixed(2);
+    }
+
+    function setConn(state, note = '') {
+      const bar = document.getElementById('conn-bar');
+      const txt = document.getElementById('conn-txt');
+      const ms = document.getElementById('conn-ms');
+      const pill = document.getElementById('ml-pill');
+      bar.className = 'conn-bar ' + (state === 'on' ? 'cb-on' : state === 'busy' ? 'cb-send' : 'cb-off');
+      if (state === 'on') { txt.textContent = 'Backend Connected — ML Active'; pill.className = 'ml-pill ml-on'; pill.textContent = 'ML: Online'; }
+      else if (state === 'busy') { txt.textContent = 'Sending ECU → ML pipeline...'; pill.className = 'ml-pill ml-busy'; pill.textContent = 'ML: Processing'; }
+      else { txt.textContent = 'Backend Offline — Local physics'; pill.className = 'ml-pill ml-off'; pill.textContent = 'ML: Offline'; }
+      ms.textContent = note;
+    }
+
+    // ── Game loop ─────────────────────────────────────────────────────────────────
+    let _lp = 0;
+    function loop(ts) {
+      if (ts - _lp >= PHYS_MS) { physics(); _lp = ts; }
+      render();
+      requestAnimationFrame(loop);
+    }
+
+    // ── Start ─────────────────────────────────────────────────────────────────────
+    setConn('off', 'Connecting...');
+    requestAnimationFrame(loop);
+    setInterval(sendToBackend, SEND_MS);
+    setTimeout(sendToBackend, 200);
+  </script>
+</body>
+
+</html>
