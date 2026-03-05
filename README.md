@@ -58,7 +58,7 @@ Vehicle API Key examples when registering:
 - `TYT-2024-001` → Toyota Innova Crysta
 - `HON-2024-001` → Honda City
 - `HYN-2024-001` → Hyundai Creta
-- `TAT-2024-001` → Tata Nexon EV
+- `TAT-2024-001` → Tata Nexon
 
 ---
 
